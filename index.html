@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jirigi, the learning engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F7F4EC;
+    --bg-alt:#EFEADD;
+    --card:#FFFFFF;
+    --ink:#1A1815;
+    --ink-soft:#5C564D;
+    --ink-faint:#8A8377;
+    --line:#DCD5C4;
+    --accent:#B8791A;
+    --accent-ink:#FBF6EA;
+    --accent-soft:#EEDCB2;
+    --leaf:#3D5A34;
+    --leaf-soft:#DCE6D6;
+    --rust:#A63D2F;
+    --rust-soft:#F0DAD5;
+    --shadow: 26,24,21;
+    --radius: 14px;
+  }
+  html[data-theme="dark"]{
+    --bg:#15130F;
+    --bg-alt:#1E1B14;
+    --card:#1F1C16;
+    --ink:#F1EDE2;
+    --ink-soft:#C6BFAE;
+    --ink-faint:#8D8676;
+    --line:#38332A;
+    --accent:#D9A44A;
+    --accent-ink:#15130F;
+    --accent-soft:#3B2E17;
+    --leaf:#7CA86A;
+    --leaf-soft:#233022;
+    --rust:#DB8271;
+    --rust-soft:#3A231F;
+    --shadow: 0,0,0;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    transition:background .3s ease, color .3s ease;
+  }
+  h1,h2,h3,h4{
+    font-family:'Fraunces',Georgia,serif;
+    font-weight:600;
+    margin:0 0 .4em 0;
+    letter-spacing:-0.01em;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  a{color:inherit;}
+  button{font-family:inherit;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .emoji{filter:grayscale(1) contrast(1.15);display:inline-block;}
+  ::selection{background:var(--accent-soft);}
+
+  /* ---------- layout shell ---------- */
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+  header.topbar{
+    position:sticky;top:0;z-index:50;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;max-width:1080px;margin:0 auto;
+  }
+  .brand{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+  .brand img{height:36px;width:auto;object-fit:contain;display:block;}
+  .brand .brand-text-fallback{
+    height:36px;width:36px;border-radius:8px;background:var(--ink);color:var(--bg);
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces';font-weight:700;font-size:18px;
+  }
+  .brand-name{display:flex;flex-direction:column;line-height:1.1;}
+  .brand-name .b1{font-family:'Fraunces';font-weight:700;font-size:19px;}
+  .brand-name .b2{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);}
+
+  nav.desktop-nav{display:flex;align-items:center;gap:2px;}
+  nav.desktop-nav button.navlink{
+    background:none;border:none;color:var(--ink-soft);font-size:14px;font-weight:500;
+    padding:9px 14px;border-radius:8px;cursor:pointer;transition:.2s;position:relative;
+  }
+  nav.desktop-nav button.navlink:hover{color:var(--ink);background:var(--bg-alt);}
+  nav.desktop-nav button.navlink.active{color:var(--ink);}
+  nav.desktop-nav button.navlink.active::after{
+    content:"";position:absolute;left:14px;right:14px;bottom:2px;height:2px;background:var(--accent);border-radius:2px;
+  }
+  .topbar-actions{display:flex;align-items:center;gap:8px;}
+  .icon-btn{
+    background:var(--bg-alt);border:1px solid var(--line);width:38px;height:38px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--ink);
+    transition:.2s;
+  }
+  .icon-btn:hover{border-color:var(--accent);}
+  .hamburger{display:none;}
+  .mobile-nav{
+    display:none;flex-direction:column;gap:2px;padding:10px 24px 16px;border-bottom:1px solid var(--line);
+    background:var(--bg);
+  }
+  .mobile-nav.open{display:flex;}
+  .mobile-nav button{
+    text-align:left;background:none;border:none;color:var(--ink-soft);font-size:15px;padding:11px 6px;
+    border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .mobile-nav button:last-child{border-bottom:none;}
+  .mobile-nav button.active{color:var(--accent);font-weight:600;}
+
+  main{min-height:70vh;}
+  .view{display:none;padding:48px 0 90px;animation:viewIn .5s ease both;}
+  .view.active{display:block;}
+  @keyframes viewIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+  }
+
+  footer{border-top:1px solid var(--line);padding:28px 24px;text-align:center;color:var(--ink-faint);font-size:13px;}
+
+  /* ---------- home ---------- */
+  .hero{display:flex;gap:40px;align-items:center;padding:20px 0 56px;flex-wrap:wrap;}
+  .hero-text{flex:1 1 380px;}
+  .hero-text h1{font-size:clamp(32px,5vw,50px);line-height:1.05;max-width:12ch;}
+  .hero-text p{color:var(--ink-soft);max-width:46ch;font-size:16px;margin-bottom:22px;}
+  .hero-svg{flex:1 1 280px;max-width:360px;}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:var(--bg);
+    border:none;padding:13px 22px;border-radius:10px;font-weight:600;font-size:14.5px;cursor:pointer;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn:hover{transform:translateY(-2px);opacity:.92;}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--ink);}
+
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+  .stat-row{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 30px;}
+  .stat-chip{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:120px;
+  }
+  .stat-chip .n{font-family:'Fraunces';font-size:24px;font-weight:700;}
+  .stat-chip .l{font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.06em;}
+
+  .course-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;}
+  @media(max-width:720px){.course-grid{grid-template-columns:1fr;}}
+  .course-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;
+    cursor:pointer;transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;position:relative;overflow:hidden;
+  }
+  .course-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px -14px rgba(var(--shadow),.35);border-color:var(--accent);}
+  .course-card .num{font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-faint);}
+  .course-card h3{font-size:21px;margin:8px 0 6px;}
+  .course-card p{color:var(--ink-soft);font-size:14px;margin:0 0 14px;}
+  .course-card .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .tag{
+    font-family:'IBM Plex Mono';font-size:10.5px;background:var(--bg-alt);border:1px solid var(--line);
+    padding:3px 8px;border-radius:20px;color:var(--ink-soft);
+  }
+  .course-card .cta{font-size:13.5px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:6px;}
+  .badge-stamp{
+    position:absolute;top:16px;right:16px;width:52px;height:52px;
+  }
+
+  /* ---------- module content ---------- */
+  .back-link{
+    background:none;border:none;color:var(--ink-soft);font-size:13.5px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;margin-bottom:18px;font-weight:500;
+  }
+  .back-link:hover{color:var(--ink);}
+  .module-hero{display:flex;gap:34px;align-items:center;flex-wrap:wrap;margin-bottom:44px;}
+  .module-hero-text{flex:1 1 360px;}
+  .module-hero-text h1{font-size:clamp(28px,4.4vw,42px);}
+  .module-hero-svg{flex:1 1 220px;max-width:260px;}
+  .lede{font-size:17px;color:var(--ink-soft);max-width:60ch;}
+
+  .content-block{
+    display:flex;gap:36px;align-items:center;margin-bottom:52px;flex-wrap:wrap;
+  }
+  .content-block.reverse{flex-direction:row-reverse;}
+  .content-text{flex:1 1 340px;}
+  .content-visual{flex:1 1 300px;max-width:380px;}
+  .content-text h2{font-size:24px;}
+  .content-text ul{margin:14px 0 0;padding-left:20px;}
+  .content-text li{margin-bottom:8px;color:var(--ink-soft);}
+  .content-text p{color:var(--ink-soft);}
+  .content-text strong{color:var(--ink);}
+  .callout{
+    background:var(--accent-soft);border:1px solid var(--line);border-left:4px solid var(--accent);
+    padding:16px 18px;border-radius:10px;margin-top:16px;font-size:14.5px;
+  }
+  .callout.leaf{background:var(--leaf-soft);border-left-color:var(--leaf);}
+  .callout.rust{background:var(--rust-soft);border-left-color:var(--rust);}
+
+  .checklist{display:grid;gap:10px;margin-top:14px;}
+  .checklist .item{
+    display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+    padding:12px 14px;border-radius:10px;font-size:14.5px;color:var(--ink-soft);
+  }
+  .checklist .item .mark{color:var(--leaf);font-weight:700;flex-shrink:0;}
+
+  svg.diagram{width:100%;height:auto;display:block;}
+  .svg-stroke{stroke:var(--ink);fill:none;}
+  .svg-fill-ink{fill:var(--ink);}
+  .svg-fill-accent{fill:var(--accent);}
+  .svg-fill-soft{fill:var(--accent-soft);}
+  .svg-fill-leaf{fill:var(--leaf);}
+  .svg-fill-rust{fill:var(--rust);}
+  .svg-ink-soft{stroke:var(--ink-soft);fill:none;}
+  .svg-bg-card{fill:var(--card);}
+  .bar-rect{transition:height 1s cubic-bezier(.2,.8,.2,1), y 1s cubic-bezier(.2,.8,.2,1);}
+
+  /* ---------- flashcards ---------- */
+  .flash-wrap{max-width:520px;margin:0 auto;}
+  .flash-card{
+    perspective:1400px;height:260px;cursor:pointer;
+  }
+  .flash-inner{
+    position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d;
+  }
+  .flash-card.flipped .flash-inner{transform:rotateY(180deg);}
+  .flash-face{
+    position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;
+    background:var(--card);box-shadow:0 20px 40px -24px rgba(var(--shadow),.4);
+  }
+  .flash-face .lbl{position:absolute;top:14px;left:18px;font-family:'IBM Plex Mono';font-size:10.5px;letter-spacing:.12em;color:var(--ink-faint);text-transform:uppercase;}
+  .flash-face p{font-size:18px;font-weight:500;margin:0;}
+  .flash-back{transform:rotateY(180deg);background:var(--accent-soft);}
+  .flash-controls{display:flex;align-items:center;justify-content:space-between;margin-top:20px;}
+  .flash-dots{display:flex;gap:6px;flex-wrap:wrap;max-width:240px;justify-content:center;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--line);}
+  .dot.seen{background:var(--accent);}
+  .flash-hint{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:10px;}
+
+  /* ---------- quiz ---------- */
+  .quiz-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;max-width:640px;margin:0 auto;}
+  .quiz-progress{height:5px;background:var(--bg-alt);border-radius:6px;overflow:hidden;margin-bottom:22px;}
+  .quiz-progress-fill{height:100%;background:var(--accent);width:0;transition:width .4s ease;}
+  .q-title{font-family:'IBM Plex Mono';font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+  .q-text{font-size:18px;font-weight:600;margin-bottom:18px;font-family:'Fraunces';}
+  .q-options{display:grid;gap:10px;}
+  .q-option{
+    text-align:left;background:var(--bg-alt);border:1px solid var(--line);border-radius:10px;padding:13px 15px;
+    cursor:pointer;font-size:14.5px;transition:.15s;display:flex;gap:10px;align-items:center;color:var(--ink);
+  }
+  .q-option:hover{border-color:var(--accent);}
+  .q-option.correct{background:var(--leaf-soft);border-color:var(--leaf);}
+  .q-option.wrong{background:var(--rust-soft);border-color:var(--rust);}
+  .q-option.disabled{pointer-events:none;opacity:.85;}
+  .q-nav{display:flex;justify-content:space-between;margin-top:22px;}
+  .q-explain{font-size:13.5px;color:var(--ink-soft);margin-top:14px;background:var(--bg-alt);padding:12px 14px;border-radius:10px;display:none;}
+  .q-explain.show{display:block;}
+
+  .quiz-result{text-align:center;padding:20px 0;}
+  .stamp-badge{width:130px;height:130px;margin:0 auto 18px;animation:stampIn .5s cubic-bezier(.2,1.4,.4,1) both;}
+  @keyframes stampIn{from{transform:scale(.4) rotate(-14deg);opacity:0;}to{transform:scale(1) rotate(-8deg);opacity:1;}}
+  .quiz-result h3{font-size:26px;}
+  .quiz-result .score{font-family:'IBM Plex Mono';font-size:15px;color:var(--ink-soft);margin-bottom:18px;}
+
+  /* ---------- settings ---------- */
+  .settings-tabs{display:flex;gap:8px;margin-bottom:26px;border-bottom:1px solid var(--line);}
+  .settings-tab{
+    background:none;border:none;padding:10px 4px;margin-right:18px;font-size:14.5px;color:var(--ink-faint);
+    cursor:pointer;border-bottom:2px solid transparent;font-weight:500;
+  }
+  .settings-tab.active{color:var(--ink);border-color:var(--accent);}
+  .settings-pane{display:none;}
+  .settings-pane.active{display:block;animation:viewIn .35s ease both;}
+  .settings-pane h2{font-size:22px;margin-top:26px;}
+  .settings-pane h2:first-child{margin-top:0;}
+  .settings-pane p{color:var(--ink-soft);max-width:66ch;}
+  .settings-row{
+    display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:16px 18px;margin-top:16px;flex-wrap:wrap;gap:10px;
+  }
+  .toggle{
+    width:48px;height:27px;background:var(--bg-alt);border:1px solid var(--line);border-radius:20px;position:relative;cursor:pointer;flex-shrink:0;
+  }
+  .toggle::after{
+    content:"";position:absolute;top:2px;left:2px;width:21px;height:21px;border-radius:50%;background:var(--ink);
+    transition:.25s;
+  }
+  html[data-theme="dark"] .toggle::after{transform:translateX(21px);background:var(--accent);}
+  .danger-btn{background:none;border:1px solid var(--rust);color:var(--rust);padding:10px 16px;border-radius:9px;font-size:13.5px;cursor:pointer;font-weight:600;}
+  .danger-btn:hover{background:var(--rust-soft);}
+  .steps-list{counter-reset:step;list-style:none;padding:0;margin-top:18px;}
+  .steps-list li{
+    counter-increment:step;position:relative;padding:14px 0 14px 46px;border-bottom:1px solid var(--line);color:var(--ink-soft);
+  }
+  .steps-list li::before{
+    content:counter(step);position:absolute;left:0;top:12px;width:30px;height:30px;border-radius:50%;
+    background:var(--accent-soft);color:var(--ink);font-family:'IBM Plex Mono';font-size:13px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .steps-list li strong{color:var(--ink);display:block;margin-bottom:2px;}
+
+  @media(max-width:860px){
+    nav.desktop-nav{display:none;}
+    .hamburger{display:flex;}
+    .content-block, .content-block.reverse{flex-direction:column;}
+    .module-hero{flex-direction:column;text-align:center;}
+    .module-hero-text{text-align:left;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand" onclick="goHome()">
+      <img src="logo.png" alt="Jirigi logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+      <div class="brand-text-fallback" style="display:none;">J</div>
+      <div class="brand-name">
+        <span class="b1">Jirigi</span>
+        <span class="b2">the learning engine</span>
+      </div>
+    </div>
+    <nav class="desktop-nav" id="desktopNav">
+      <button class="navlink" data-view="home">Home</button>
+      <button class="navlink" data-view="m1">Aflatoxin</button>
+      <button class="navlink" data-view="m2">Pesticides</button>
+      <button class="navlink" data-view="m3">Fish &amp; Veg</button>
+      <button class="navlink" data-view="m4">Clean Produce</button>
+      <button class="navlink" data-view="settings">Settings</button>
+    </nav>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="themeToggle" title="Switch light/dark mode"><span class="emoji" id="themeIcon">🌙</span></button>
+      <button class="icon-btn hamburger" id="hamburgerBtn" title="Menu"><span class="emoji">☰</span></button>
+    </div>
+  </div>
+  <div class="mobile-nav" id="mobileNav">
+    <button class="navlink" data-view="home">Home</button>
+    <button class="navlink" data-view="m1">Module 1 · Aflatoxin</button>
+    <button class="navlink" data-view="m2">Module 2 · Pesticides</button>
+    <button class="navlink" data-view="m3">Module 3 · Fish &amp; Vegetable Farming</button>
+    <button class="navlink" data-view="m4">Module 4 · Clean Produce</button>
+    <button class="navlink" data-view="settings">Settings</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ========== HOME ========== -->
+<section class="view active" id="view-home">
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-text">
+        <span class="eyebrow"><span class="emoji">🌾</span> Field training, made simple</span>
+        <h1>Know your food. Protect your harvest.</h1>
+        <p>Jirigi is a plain-language training course for field workers, extension officers, farmers and market handlers across Africa. Four short modules, no jargon, and a quiz at the end of each one so you know it has landed.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn" onclick="showView('m1')">Start with Module 1 <span class="emoji">→</span></button>
+          <button class="btn ghost" onclick="showView('settings');openSettingsTab('howto')">How this works</button>
+        </div>
+      </div>
+      <div class="hero-svg">
+        <svg class="diagram" viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="150" cy="230" rx="90" ry="12" class="svg-fill-soft"/>
+          <path d="M150 40 C 190 60, 205 110, 190 150 C 178 182, 150 200, 150 200 C 150 200, 122 182, 110 150 C 95 110, 110 60, 150 40 Z" class="svg-stroke" stroke-width="3"/>
+          <path d="M150 55 C 178 78, 188 112, 176 142" class="svg-ink-soft" stroke-width="2" stroke-dasharray="4 5"/>
+          <circle cx="128" cy="100" r="5" class="svg-fill-accent"/>
+          <circle cx="160" cy="120" r="4" class="svg-fill-accent"/>
+          <circle cx="140" cy="150" r="4.5" class="svg-fill-accent"/>
+          <circle cx="170" cy="90" r="3.5" class="svg-fill-accent"/>
+          <path d="M150 200 L150 225" class="svg-stroke" stroke-width="3"/>
+          <text x="150" y="248" text-anchor="middle" class="mono svg-fill-ink" font-size="11">a single kernel, checked closely</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-chip"><div class="n">4</div><div class="l">Modules</div></div>
+      <div class="stat-chip"><div class="n">~45</div><div class="l">Flashcards</div></div>
+      <div class="stat-chip"><div class="n">40</div><div class="l">Quiz questions</div></div>
+      <div class="stat-chip"><div class="n">0</div><div class="l">Signal needed after download</div></div>
+    </div>
+
+    <div class="section-head">
+      <h2 style="font-size:22px;">Choose a module</h2>
+      <span class="mono" style="font-size:12px;color:var(--ink-faint);">progress is saved on this device</span>
+    </div>
+    <div class="course-grid">
+      <div class="course-card" onclick="showView('m1')">
+        <svg class="badge-stamp" id="stampHome-m1" style="display:none;" viewBox="0 0 60 60"><circle cx="30" cy="30" r="27" class="svg-stroke" stroke-width="2"/><circle cx="30" cy="30" r="21" class="svg-stroke" stroke-width="1" stroke-dasharray="2 3"/><text x="30" y="34" text-anchor="middle" class="mono svg-fill-ink" font-size="9" font-weight="700">DONE</text></svg>
+        <div class="num">Module 01</div>
+        <h3><span class="emoji">🌽</span> Aflatoxin</h3>
+        <p>The invisible mould poison that costs farmers money and can cost health. What it is, why it matters, and how to keep it out of the harvest.</p>
+        <div class="tags"><span class="tag">Nigeria</span><span class="tag">Ghana</span><span class="tag">Kenya</span></div>
+        <div class="cta">Open module <span class="emoji">→</span></div>
+      </div>
+      <div class="course-card" onclick="showView('m2')">
+        <svg class="badge-stamp" id="stampHome-m2" style="display:none;" viewBox="0 0 60 60"><circle cx="30" cy="30" r="27" class="svg-stroke" stroke-width="2"/><circle cx="30" cy="30" r="21" class="svg-stroke" stroke-width="1" stroke-dasharray="2 3"/><text x="30" y="34" text-anchor="middle" class="mono svg-fill-ink" font-size="9" font-weight="700">DONE</text></svg>
+        <div class="num">Module 02</div>
+        <h3><span class="emoji">💧</span> Pesticides</h3>
+        <p>Using the right amount, at the right time, the right way. Why misuse costs trade, health and money, and what safer practice looks like.</p>
+        <div class="tags"><span class="tag">Benin</span><span class="tag">Ghana</span><span class="tag">Nigeria</span></div>
+        <div class="cta">Open module <span class="emoji">→</span></div>
+      </div>
+      <div class="course-card" onclick="showView('m3')">
+        <svg class="badge-stamp" id="stampHome-m3" style="display:none;" viewBox="0 0 60 60"><circle cx="30" cy="30" r="27" class="svg-stroke" stroke-width="2"/><circle cx="30" cy="30" r="21" class="svg-stroke" stroke-width="1" stroke-dasharray="2 3"/><text x="30" y="34" text-anchor="middle" class="mono svg-fill-ink" font-size="9" font-weight="700">DONE</text></svg>
+        <div class="num">Module 03</div>
+        <h3><span class="emoji">🐟</span> Fish &amp; Vegetable Farming</h3>
+        <p>How combined fish and vegetable systems work, where the safety risks hide in the shared water, and how to keep both sides of the system clean.</p>
+        <div class="tags"><span class="tag">Nigeria</span><span class="tag">Cameroon</span></div>
+        <div class="cta">Open module <span class="emoji">→</span></div>
+      </div>
+      <div class="course-card" onclick="showView('m4')">
+        <svg class="badge-stamp" id="stampHome-m4" style="display:none;" viewBox="0 0 60 60"><circle cx="30" cy="30" r="27" class="svg-stroke" stroke-width="2"/><circle cx="30" cy="30" r="21" class="svg-stroke" stroke-width="1" stroke-dasharray="2 3"/><text x="30" y="34" text-anchor="middle" class="mono svg-fill-ink" font-size="9" font-weight="700">DONE</text></svg>
+        <div class="num">Module 04</div>
+        <h3><span class="emoji">🍅</span> Clean Produce</h3>
+        <p>How tomatoes and leafy greens pick up bacteria between farm and fork, and the simple hygiene habits that keep produce safe to eat.</p>
+        <div class="tags"><span class="tag">South Africa</span></div>
+        <div class="cta">Open module <span class="emoji">→</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== MODULE 1: AFLATOXIN ========== -->
+<section class="view" id="view-m1">
+  <div class="wrap">
+    <button class="back-link" onclick="goHome()"><span class="emoji">←</span> Back to modules</button>
+    <div class="module-hero">
+      <div class="module-hero-text">
+        <span class="eyebrow"><span class="emoji">🌽</span> Module 1 of 4</span>
+        <h1>Aflatoxin: the poison you cannot see</h1>
+        <p class="lede">A quiet fungus that grows on maize and groundnut can produce one of the most dangerous natural poisons known. It has no smell, no taste, and often no visible sign. This module covers what it is, why it matters, and what actually works to keep it out of the food chain.</p>
+      </div>
+      <div class="module-hero-svg">
+        <svg class="diagram" viewBox="0 0 200 200"><circle cx="100" cy="100" r="70" class="svg-fill-soft"/>
+          <path d="M100 45 Q 130 60 128 95 Q 126 130 100 145 Q 74 130 72 95 Q 70 60 100 45 Z" class="svg-stroke" stroke-width="3"/>
+          <circle cx="85" cy="80" r="4" class="svg-fill-rust"/><circle cx="112" cy="95" r="3" class="svg-fill-rust"/><circle cx="95" cy="115" r="3.5" class="svg-fill-rust"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>What aflatoxin actually is</h2>
+        <p>Aflatoxin is not dirt, and it is not a chemical spilled onto food. It is a natural poison made by two small fungi, <strong>Aspergillus flavus</strong> and <strong>Aspergillus parasiticus</strong>. These fungi live in soil everywhere and grow on crops when conditions are warm and damp, both in the field and after harvest.</p>
+        <p>The danger is that contaminated maize, groundnut or dried chilli can look, smell and taste completely normal. There is no reliable way to tell by eye. That is exactly why prevention and testing matter more than sorting by appearance alone.</p>
+        <div class="callout rust"><strong>Key point:</strong> if grain has been kept warm and damp for too long, whether still in the field, drying on a tarpaulin, or sitting in a sack, assume the risk has gone up, even if it looks fine.</div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 320 220">
+          <rect x="10" y="150" width="300" height="4" class="svg-fill-ink"/>
+          <g class="mono" font-size="10">
+            <circle cx="40" cy="140" r="14" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+            <text x="40" y="144" text-anchor="middle">1</text>
+            <text x="40" y="172" text-anchor="middle" fill="var(--ink-soft)">Field</text>
+
+            <circle cx="120" cy="120" r="14" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+            <text x="120" y="124" text-anchor="middle">2</text>
+            <text x="120" y="172" text-anchor="middle" fill="var(--ink-soft)">Harvest</text>
+
+            <circle cx="200" cy="105" r="14" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+            <text x="200" y="109" text-anchor="middle">3</text>
+            <text x="200" y="172" text-anchor="middle" fill="var(--ink-soft)">Drying</text>
+
+            <circle cx="280" cy="90" r="14" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+            <text x="280" y="94" text-anchor="middle">4</text>
+            <text x="280" y="172" text-anchor="middle" fill="var(--ink-soft)">Storage</text>
+          </g>
+          <path d="M40 126 L120 106 L200 91 L280 76" class="svg-ink-soft" stroke-width="2" stroke-dasharray="3 4"/>
+          <text x="160" y="205" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-faint)">every point on this line is a chance for the fungus to take hold</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block reverse">
+      <div class="content-text">
+        <h2>Why it is genuinely dangerous</h2>
+        <ul>
+          <li><strong>Liver damage and cancer:</strong> aflatoxin is one of the strongest known natural causes of liver cancer. Repeated low-level exposure over years quietly raises that risk.</li>
+          <li><strong>Acute poisoning:</strong> eating heavily contaminated food over a short period can cause sudden liver failure. Outbreaks like this have happened in East Africa when badly contaminated maize entered the food supply.</li>
+          <li><strong>Child growth:</strong> regular exposure in early childhood is linked to stunted growth and a weaker immune system, even with no obvious symptoms at the time.</li>
+          <li><strong>Animals too:</strong> poultry, pigs and cattle fed contaminated grain grow slower, lay fewer eggs and produce less milk, and the toxin can even pass into milk.</li>
+        </ul>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 220">
+          <text x="150" y="20" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-faint)">illustrative risk by crop type</text>
+          <g id="chartM1">
+            <rect x="40" y="180" width="40" height="0" class="svg-fill-accent bar-rect" data-h="120" data-y="60"/>
+            <rect x="100" y="180" width="40" height="0" class="svg-fill-accent bar-rect" data-h="105" data-y="75"/>
+            <rect x="160" y="180" width="40" height="0" class="svg-fill-accent bar-rect" data-h="55" data-y="125"/>
+            <rect x="220" y="180" width="40" height="0" class="svg-fill-accent bar-rect" data-h="35" data-y="145"/>
+          </g>
+          <line x1="30" y1="180" x2="280" y2="180" class="svg-stroke" stroke-width="2"/>
+          <g class="mono" font-size="10" fill="var(--ink-soft)">
+            <text x="60" y="198" text-anchor="middle">Maize</text>
+            <text x="120" y="198" text-anchor="middle">Groundnut</text>
+            <text x="180" y="198" text-anchor="middle">Cassava</text>
+            <text x="240" y="198" text-anchor="middle">Tree nuts</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>The economic side, not just the health side</h2>
+        <p>Contaminated grain is not only a health problem, it is a livelihood problem. Buyers, mills, feed companies and exporters increasingly test for aflatoxin before they pay. Grain above the legal limit gets rejected on the spot or sold at a much lower price to whoever will still take it.</p>
+        <p>At national level, this shows up as trade restrictions and closed export markets, since most countries and trading blocs set strict aflatoxin limits in food and feed. For a smallholder, one contaminated batch can wipe out the season's profit.</p>
+        <div class="callout"><strong>What this looks like in practice:</strong> a trader offers a fraction of the going price for a sack once a quick test flags high aflatoxin, or refuses it outright. The loss falls first on the farmer, and the incentive to prevent contamination early is exactly what this module is trying to build.</div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 200">
+          <text x="150" y="18" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-faint)">value lost as contamination rises</text>
+          <polyline points="30,40 90,55 150,95 210,140 270,165" class="svg-stroke" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <circle cx="30" cy="40" r="3.5" class="svg-fill-leaf"/>
+          <circle cx="270" cy="165" r="3.5" class="svg-fill-rust"/>
+          <line x1="20" y1="180" x2="280" y2="180" class="svg-stroke" stroke-width="1.5"/>
+          <line x1="20" y1="20" x2="20" y2="180" class="svg-stroke" stroke-width="1.5"/>
+          <text x="30" y="35" class="mono" font-size="9" fill="var(--ink-faint)">full price</text>
+          <text x="215" y="160" class="mono" font-size="9" fill="var(--ink-faint)">rejected</text>
+          <text x="150" y="197" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">contamination level →</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block reverse">
+      <div class="content-text">
+        <h2>Prevention that actually works</h2>
+        <ul>
+          <li><strong>Harvest on time:</strong> crops left too long in the field, especially after a dry spell followed by rain, are at higher risk.</li>
+          <li><strong>Dry quickly, dry properly:</strong> moisture is what lets the fungus grow. Getting grain down to a safe moisture level fast is the single biggest lever a farmer controls.</li>
+          <li><strong>Sort before storage:</strong> remove shrivelled, discoloured, insect-damaged or mouldy kernels. They carry most of the risk.</li>
+          <li><strong>Store dry and sealed:</strong> hermetic bags, such as PICS bags, keep moisture and pests out without any chemicals.</li>
+          <li><strong>Biocontrol in the field:</strong> products like Aflasafe, now used in several African countries including Nigeria, spread friendly native strains of the same fungus across the field. These friendly strains crowd out the toxin-producing ones before harvest.</li>
+          <li><strong>Breeding for resistance:</strong> researchers are developing maize and groundnut varieties that are naturally harder for the fungus to infect, some with the added benefit of higher vitamin E content.</li>
+        </ul>
+      </div>
+      <div class="content-visual">
+        <div class="checklist">
+          <div class="item"><span class="mark">✓</span> Harvest promptly, avoid leaving crop in wet field conditions</div>
+          <div class="item"><span class="mark">✓</span> Dry to safe moisture before bagging, test with a moisture meter if one is available</div>
+          <div class="item"><span class="mark">✓</span> Sort out damaged or discoloured kernels before storage</div>
+          <div class="item"><span class="mark">✓</span> Use sealed, hermetic storage bags rather than open sacks</div>
+          <div class="item"><span class="mark">✓</span> Keep storage areas raised off the ground and away from damp walls</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>Independent research and regional efforts</h2>
+        <p>Aflatoxin is a well studied problem, and several independent research and development efforts across Nigeria, Ghana and Kenya work on it from different angles. Some focus on breeding resistant crop varieties. Others build collaborative platforms where farmers, researchers, food regulators and processors share what is working, so that good practice does not stay locked inside one lab or one district.</p>
+        <p>One example is the FS4Africa research initiative, which has supported work connecting aflatoxin management networks in Nigeria and Ghana with crop breeding programmes in Kenya, alongside training modules for value chain actors on cost-effective control practices. Jirigi is an independent training tool and is not produced by or affiliated with that project, but draws on this kind of public, published work as a reference point for good practice.</p>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 200">
+          <circle cx="80" cy="60" r="34" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="80" y="55" text-anchor="middle" class="mono" font-size="9">Farmers</text>
+          <text x="80" y="68" text-anchor="middle" class="mono" font-size="9">&amp; traders</text>
+          <circle cx="220" cy="60" r="34" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="220" y="55" text-anchor="middle" class="mono" font-size="9">Research</text>
+          <text x="220" y="68" text-anchor="middle" class="mono" font-size="9">institutes</text>
+          <circle cx="150" cy="150" r="34" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="150" y="145" text-anchor="middle" class="mono" font-size="9">Regulators</text>
+          <text x="150" y="158" text-anchor="middle" class="mono" font-size="9">&amp; extension</text>
+          <line x1="106" y1="75" x2="130" y2="128" class="svg-ink-soft" stroke-width="1.5"/>
+          <line x1="194" y1="75" x2="170" y2="128" class="svg-ink-soft" stroke-width="1.5"/>
+          <line x1="114" y1="60" x2="186" y2="60" class="svg-ink-soft" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="flash-section" data-module="m1"></div>
+    <div class="quiz-section" data-module="m1"></div>
+  </div>
+</section>
+
+<!-- ========== MODULE 2: PESTICIDES ========== -->
+<section class="view" id="view-m2">
+  <div class="wrap">
+    <button class="back-link" onclick="goHome()"><span class="emoji">←</span> Back to modules</button>
+    <div class="module-hero">
+      <div class="module-hero-text">
+        <span class="eyebrow"><span class="emoji">💧</span> Module 2 of 4</span>
+        <h1>Pesticides: using them right, not just using them</h1>
+        <p class="lede">Pesticides are a normal part of growing grains and vegetables. The problem is not that they exist, it is when they are used at the wrong dose, at the wrong time, or without protection. This module covers what misuse looks like, what it costs, and safer practice that field workers can pass on.</p>
+      </div>
+      <div class="module-hero-svg">
+        <svg class="diagram" viewBox="0 0 200 200">
+          <path d="M70 60 L140 60 L150 100 L60 100 Z" class="svg-stroke" stroke-width="3"/>
+          <rect x="90" y="40" width="20" height="24" class="svg-stroke" stroke-width="3"/>
+          <path d="M60 100 L55 150 L145 150 L140 100" class="svg-stroke" stroke-width="3"/>
+          <circle cx="80" cy="165" r="4" class="svg-fill-accent"/>
+          <circle cx="100" cy="172" r="3.5" class="svg-fill-accent"/>
+          <circle cx="120" cy="163" r="4" class="svg-fill-accent"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>What misuse actually looks like</h2>
+        <ul>
+          <li><strong>Wrong product:</strong> using a chemical on a crop it was never approved for.</li>
+          <li><strong>Wrong dose:</strong> mixing it stronger than the label says, assuming more is better.</li>
+          <li><strong>Wrong timing:</strong> spraying too close to harvest, ignoring the pre-harvest interval, the minimum waiting time between the last spray and picking the crop.</li>
+          <li><strong>No protection:</strong> spraying without gloves, a mask or covered skin, and without washing thoroughly afterward.</li>
+        </ul>
+        <div class="callout"><strong>Pre-harvest interval, in plain terms:</strong> every approved pesticide has a minimum number of days it needs before the crop is safe to pick and eat. Skipping that interval is one of the most common causes of high residue on food.</div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 180">
+          <line x1="30" y1="100" x2="270" y2="100" class="svg-stroke" stroke-width="2"/>
+          <circle cx="60" cy="100" r="6" class="svg-fill-rust"/>
+          <text x="60" y="125" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-soft)">last spray</text>
+          <rect x="60" y="95" width="150" height="10" class="svg-fill-soft"/>
+          <text x="135" y="80" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-faint)">pre-harvest interval</text>
+          <circle cx="210" cy="100" r="6" class="svg-fill-leaf"/>
+          <text x="210" y="125" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-soft)">safe to harvest</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block reverse">
+      <div class="content-text">
+        <h2>What it costs</h2>
+        <p>Misuse is not a victimless shortcut. It raises health risk for the person spraying and for the family who eats the produce, since residues do not disappear on their own. Over time, pests exposed to the same chemical too often can develop resistance, meaning the same product stops working, and farmers end up spraying more, more often, for less effect.</p>
+        <p>Trade is affected too. The European Union placed restrictions on cowpea, a widely grown bean crop, imported from Nigeria after finding pesticide residues above the legal limit. That single trade decision affected exporters and, further down the chain, the farmers who grew the crop.</p>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 200">
+          <text x="150" y="18" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-faint)">pest control effect over repeated misuse</text>
+          <polyline points="30,140 90,90 150,110 210,130 270,150" class="svg-stroke" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <line x1="20" y1="170" x2="280" y2="170" class="svg-stroke" stroke-width="1.5"/>
+          <line x1="20" y1="30" x2="20" y2="170" class="svg-stroke" stroke-width="1.5"/>
+          <text x="150" y="190" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">time and repeated spraying →</text>
+          <text x="60" y="80" class="mono" font-size="9" fill="var(--ink-faint)">strong effect</text>
+          <text x="220" y="145" class="mono" font-size="9" fill="var(--ink-faint)">weaker effect</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>Safer practice</h2>
+        <div class="checklist">
+          <div class="item"><span class="mark">✓</span> Read the label. Confirm the crop, the correct dose and the pre-harvest interval before mixing anything</div>
+          <div class="item"><span class="mark">✓</span> Wear gloves, a mask and covered clothing when spraying, and wash thoroughly afterward</div>
+          <div class="item"><span class="mark">✓</span> Respect the waiting period between the last spray and harvest, every time</div>
+          <div class="item"><span class="mark">✓</span> Rotate control methods rather than relying on one chemical repeatedly, to slow resistance</div>
+          <div class="item"><span class="mark">✓</span> For stored grain, use hermetic storage such as PICS bags instead of repeated chemical treatment</div>
+        </div>
+        <p style="margin-top:16px;">This combined approach, using several safer methods together rather than reaching for the sprayer first, is often called <strong>Integrated Pest Management</strong>.</p>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 260 220">
+          <rect x="30" y="30" width="200" height="140" rx="10" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <path d="M65 100 L105 130 L165 65" class="svg-stroke" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="130" y="195" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-soft)">label checked, dose confirmed</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="flash-section" data-module="m2"></div>
+    <div class="quiz-section" data-module="m2"></div>
+  </div>
+</section>
+
+<!-- ========== MODULE 3: FISH & VEGETABLE FARMING ========== -->
+<section class="view" id="view-m3">
+  <div class="wrap">
+    <button class="back-link" onclick="goHome()"><span class="emoji">←</span> Back to modules</button>
+    <div class="module-hero">
+      <div class="module-hero-text">
+        <span class="eyebrow"><span class="emoji">🐟</span> Module 3 of 4</span>
+        <h1>Safe fish and vegetable farming</h1>
+        <p class="lede">Growing fish and vegetables together in one recirculating system is an efficient way to produce protein and greens from limited land and water. It also means the same water touches both the fish and the food, so keeping that water clean matters for everyone downstream.</p>
+      </div>
+      <div class="module-hero-svg">
+        <svg class="diagram" viewBox="0 0 200 200">
+          <ellipse cx="100" cy="150" rx="55" ry="28" class="svg-fill-soft svg-stroke" stroke-width="2"/>
+          <path d="M80 148 Q95 138 110 148 Q100 158 80 148 Z" class="svg-stroke" stroke-width="2"/>
+          <rect x="70" y="45" width="60" height="35" rx="4" class="svg-fill-soft svg-stroke" stroke-width="2"/>
+          <line x1="80" y1="55" x2="80" y2="70" class="svg-stroke" stroke-width="2"/>
+          <line x1="100" y1="52" x2="100" y2="73" class="svg-stroke" stroke-width="2"/>
+          <line x1="120" y1="55" x2="120" y2="70" class="svg-stroke" stroke-width="2"/>
+          <path d="M100 80 L100 122" class="svg-ink-soft" stroke-width="2" stroke-dasharray="3 4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>How the system works</h2>
+        <p>A Recirculating Aquaculture System, or RAS, keeps fish in tanks where the water is filtered and reused instead of being discharged. Combine that with a vegetable bed on hydroponics, growing without soil, and the fish waste supplies nutrients the plants need, while the plants help clean the water before it flows back to the fish.</p>
+        <p>Done well, this closes a loop: less wasted water, less need for chemical fertilizer, and two food products, fish and vegetables, from the same footprint of land.</p>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 220">
+          <rect x="30" y="120" width="100" height="70" rx="8" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="80" y="160" text-anchor="middle" class="mono" font-size="10">Fish tank</text>
+          <rect x="180" y="30" width="100" height="60" rx="8" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="230" y="65" text-anchor="middle" class="mono" font-size="10">Vegetable bed</text>
+          <path d="M130 145 C 160 145, 160 60, 178 60" class="svg-ink-soft" stroke-width="2" fill="none"/>
+          <path d="M230 90 C 230 150, 160 170, 132 170" class="svg-ink-soft" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+          <text x="160" y="30" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">nutrient-rich water up</text>
+          <text x="185" y="205" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">filtered water back down</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block reverse">
+      <div class="content-text">
+        <h2>Where the risk hides</h2>
+        <ul>
+          <li><strong>Shared water, shared risk:</strong> if the water carries harmful bacteria or leftover antibiotics, both the fish and the vegetables can carry it forward.</li>
+          <li><strong>Antibiotics in sick fish:</strong> treating fish disease with antibiotics can leave residues in the water, and eventually in the harvested fish or vegetables, if not managed carefully.</li>
+          <li><strong>Raw vegetables:</strong> greens from these systems are often eaten raw, so any pathogen in the water has a direct path to the person eating.</li>
+        </ul>
+        <div class="callout">Traceability matters here. A customer who knows the water source and whether any treatments were used can make an informed choice, and that transparency also pushes producers toward safer practice.</div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 200">
+          <defs>
+            <marker id="arrow1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" class="svg-fill-ink"/></marker>
+          </defs>
+          <circle cx="80" cy="90" r="40" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="80" y="85" text-anchor="middle" class="mono" font-size="9">Shared</text>
+          <text x="80" y="98" text-anchor="middle" class="mono" font-size="9">water</text>
+          <path d="M118 90 L170 90" class="svg-ink-soft" stroke-width="2" marker-end="url(#arrow1)"/>
+          <path d="M118 70 L170 40" class="svg-ink-soft" stroke-width="2"/>
+          <text x="200" y="94" class="mono" font-size="9" fill="var(--ink-soft)">Fish</text>
+          <text x="200" y="44" class="mono" font-size="9" fill="var(--ink-soft)">Vegetables</text>
+          <text x="80" y="150" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">one contamination point, two food products</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>Good practice for operators</h2>
+        <div class="checklist">
+          <div class="item"><span class="mark">✓</span> Test water quality regularly, not just when fish look unwell</div>
+          <div class="item"><span class="mark">✓</span> Use antibiotics only when necessary, and follow proper withdrawal periods</div>
+          <div class="item"><span class="mark">✓</span> Wash and handle harvested vegetables and fish with clean water and clean tools</div>
+          <div class="item"><span class="mark">✓</span> Keep basic records of water source and any treatments, so the information is there if a buyer asks</div>
+          <div class="item"><span class="mark">✓</span> Explore microbiome-based approaches to fish health, which can reduce reliance on chemical treatment</div>
+        </div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 260 200">
+          <circle cx="130" cy="100" r="70" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <path d="M100 100 L120 120 L165 75" class="svg-stroke" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="130" y="180" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-soft)">water tested, records kept</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="flash-section" data-module="m3"></div>
+    <div class="quiz-section" data-module="m3"></div>
+  </div>
+</section>
+
+<!-- ========== MODULE 4: CLEAN PRODUCE ========== -->
+<section class="view" id="view-m4">
+  <div class="wrap">
+    <button class="back-link" onclick="goHome()"><span class="emoji">←</span> Back to modules</button>
+    <div class="module-hero">
+      <div class="module-hero-text">
+        <span class="eyebrow"><span class="emoji">🍅</span> Module 4 of 4</span>
+        <h1>Clean hands, clean water, clean produce</h1>
+        <p class="lede">Tomatoes and leafy greens are some of the most common fresh foods sold in local markets, and also some of the easiest to contaminate between the farm and the plate. This module covers where the risk enters and the simple habits that close the gap.</p>
+      </div>
+      <div class="module-hero-svg">
+        <svg class="diagram" viewBox="0 0 200 200">
+          <circle cx="100" cy="105" r="55" class="svg-fill-soft svg-stroke" stroke-width="3"/>
+          <path d="M100 50 Q 110 40 120 48" class="svg-stroke" stroke-width="3" fill="none"/>
+          <path d="M100 50 Q 90 40 82 48" class="svg-stroke" stroke-width="3" fill="none"/>
+          <line x1="100" y1="50" x2="100" y2="62" class="svg-stroke" stroke-width="3"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>Where contamination comes from</h2>
+        <ul>
+          <li><strong>Irrigation water:</strong> water drawn from rivers or shared sources can carry bacteria, especially where sanitation is poor upstream.</li>
+          <li><strong>Hands and tools:</strong> hands that touch soil, animals or dirty surfaces pass bacteria straight onto the crop during harvest and packing.</li>
+          <li><strong>The ground itself:</strong> produce that touches bare soil, especially after rain or near livestock, picks up more risk.</li>
+          <li><strong>Crates and containers:</strong> unwashed containers carry bacteria from one batch of produce to the next.</li>
+        </ul>
+        <div class="callout rust"><strong>The two names to know:</strong> <em>E. coli</em> and <em>Salmonella</em> are the bacteria most often behind contamination outbreaks on fresh vegetables. Both can cause diarrhoea, cramps and fever, and can be more serious for children, older people and anyone already unwell.</div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 220">
+          <text x="150" y="18" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-faint)">contamination pathway, farm to fork</text>
+          <circle cx="50" cy="60" r="20" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="50" y="64" text-anchor="middle" class="mono" font-size="9">Water</text>
+          <circle cx="150" cy="60" r="20" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="150" y="64" text-anchor="middle" class="mono" font-size="9">Hands</text>
+          <circle cx="250" cy="60" r="20" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <text x="250" y="64" text-anchor="middle" class="mono" font-size="9">Ground</text>
+          <path d="M65 78 L135 78 M165 78 L235 78" class="svg-ink-soft" stroke-width="1.5"/>
+          <line x1="150" y1="80" x2="150" y2="120" class="svg-ink-soft" stroke-width="1.5"/>
+          <rect x="105" y="120" width="90" height="34" rx="6" class="svg-fill-accent"/>
+          <text x="150" y="141" text-anchor="middle" class="mono" font-size="9" fill="var(--accent-ink)">Produce</text>
+          <line x1="150" y1="154" x2="150" y2="180" class="svg-ink-soft" stroke-width="1.5"/>
+          <text x="150" y="200" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">Consumer</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block reverse">
+      <div class="content-text">
+        <h2>Habits that close the gap</h2>
+        <div class="checklist">
+          <div class="item"><span class="mark">✓</span> Use the cleanest available water for irrigation and for washing produce after harvest</div>
+          <div class="item"><span class="mark">✓</span> Wash hands and clean tools before handling produce, especially after touching soil or animals</div>
+          <div class="item"><span class="mark">✓</span> Keep harvested produce off bare ground, use clean crates or mats instead</div>
+          <div class="item"><span class="mark">✓</span> Clean crates and containers between uses, do not let them carry old produce residue into new batches</div>
+          <div class="item"><span class="mark">✓</span> Where possible, keep produce cool between harvest and sale, since heat speeds up bacterial growth</div>
+        </div>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 260 200">
+          <rect x="40" y="40" width="180" height="120" rx="10" class="svg-fill-soft svg-stroke" stroke-width="1.5"/>
+          <path d="M75 100 L105 130 L185 60" class="svg-stroke" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <text x="130" y="180" text-anchor="middle" class="mono" font-size="10" fill="var(--ink-soft)">clean water, clean hands, clean crates</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="content-block">
+      <div class="content-text">
+        <h2>Checking the whole chain, not just the end</h2>
+        <p>Rather than only inspecting produce at the point of sale, safety improves most when checks happen at several points along the way: the water source on the farm, hygiene practices during harvest and packing, and conditions at the point of retail. Mobile tools that give smallholders quick access to guidance in the field are increasingly part of this picture, helping put good practice within reach even where formal extension visits are rare.</p>
+      </div>
+      <div class="content-visual">
+        <svg class="diagram" viewBox="0 0 300 160">
+          <rect x="20" y="60" width="60" height="16" rx="8" class="svg-fill-soft svg-stroke" stroke-width="1"/>
+          <text x="50" y="72" text-anchor="middle" class="mono" font-size="8">Water</text>
+          <rect x="120" y="60" width="60" height="16" rx="8" class="svg-fill-soft svg-stroke" stroke-width="1"/>
+          <text x="150" y="72" text-anchor="middle" class="mono" font-size="8">Harvest</text>
+          <rect x="220" y="60" width="60" height="16" rx="8" class="svg-fill-soft svg-stroke" stroke-width="1"/>
+          <text x="250" y="72" text-anchor="middle" class="mono" font-size="8">Retail</text>
+          <path d="M80 68 L120 68 M180 68 L220 68" class="svg-ink-soft" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <text x="150" y="110" text-anchor="middle" class="mono" font-size="9" fill="var(--ink-faint)">checks at every stage, not only the last one</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="flash-section" data-module="m4"></div>
+    <div class="quiz-section" data-module="m4"></div>
+  </div>
+</section>
+
+<!-- ========== SETTINGS ========== -->
+<section class="view" id="view-settings">
+  <div class="wrap" style="max-width:760px;">
+    <span class="eyebrow"><span class="emoji">⚙</span> Settings</span>
+    <h1 style="font-size:30px;">Settings</h1>
+    <div class="settings-tabs">
+      <button class="settings-tab active" data-tab="about" onclick="openSettingsTab('about')">About</button>
+      <button class="settings-tab" data-tab="howto" onclick="openSettingsTab('howto')">How to use</button>
+      <button class="settings-tab" data-tab="general" onclick="openSettingsTab('general')">General</button>
+    </div>
+
+    <div class="settings-pane active" id="settings-about">
+      <h2>What Jirigi is</h2>
+      <p>Jirigi is an independent, plain-language training course built for field workers, extension officers, farmers, cooperative members and market handlers. It covers four practical food safety topics that come up often in day to day work: aflatoxin in grains, safe pesticide use, safe combined fish and vegetable farming, and clean handling of fresh produce like tomatoes and leafy greens.</p>
+      <h2>Where the ideas come from</h2>
+      <p>The content draws on widely published food safety research and practice across Africa, including public work from regional initiatives such as the FS4Africa research programme. Jirigi is not produced by, affiliated with, or endorsed by FS4Africa or any single project. It is an independent effort to put this kind of knowledge into a format that is quick to read and easy to revisit in the field.</p>
+      <h2>Why "Jirigi"</h2>
+      <p>A jirigi is the kind of container people already trust to carry something valuable safely from one place to another. That is the job this course is trying to do with knowledge instead of water or grain.</p>
+    </div>
+
+    <div class="settings-pane" id="settings-howto">
+      <h2>How to use this course</h2>
+      <ol class="steps-list">
+        <li><strong>Pick a module from the home screen.</strong> There is no required order, though Module 1 on aflatoxin is the most detailed if you are starting fresh.</li>
+        <li><strong>Read through the module.</strong> Each one is short on purpose: what the problem is, why it matters, and what to actually do about it.</li>
+        <li><strong>Flip through the flashcards.</strong> Tap or click a card to flip it and check the answer, then use the arrows to move to the next one.</li>
+        <li><strong>Take the quiz at the end.</strong> Answer each question, see the explanation, and get a score at the end with a completion stamp.</li>
+        <li><strong>Switch modules any time</strong> using the menu at the top, which turns into a simple menu icon on smaller screens.</li>
+        <li><strong>Your progress stays on this device.</strong> Quiz completion and scores are saved locally in this browser, nothing is sent anywhere.</li>
+      </ol>
+    </div>
+
+    <div class="settings-pane" id="settings-general">
+      <h2>Display</h2>
+      <div class="settings-row">
+        <div>
+          <div style="font-weight:600;">Dark mode</div>
+          <div style="font-size:13px;color:var(--ink-faint);">Switch between light and dark appearance</div>
+        </div>
+        <div class="toggle" id="toggleDark" onclick="toggleTheme()"></div>
+      </div>
+      <h2>Your data</h2>
+      <div class="settings-row">
+        <div>
+          <div style="font-weight:600;">Reset all progress</div>
+          <div style="font-size:13px;color:var(--ink-faint);">Clears saved quiz scores and flashcard history on this device</div>
+        </div>
+        <button class="danger-btn" onclick="resetProgress()">Reset progress</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Jirigi, the learning engine. An independent food safety training course. Progress is stored only on this device.
+</footer>
+
+<script>
+/* ---------------- DATA ---------------- */
+const DATA = {
+  m1: {
+    flashcards: [
+      {f:"What is aflatoxin?", b:"A poison made by tiny fungi (Aspergillus flavus and Aspergillus parasiticus) that grow on crops like maize and groundnut, especially in warm, damp conditions."},
+      {f:"Can you see, smell or taste aflatoxin in food?", b:"No. It is usually invisible and tasteless. Food can look completely normal and still be contaminated."},
+      {f:"Which crops are most at risk?", b:"Maize and groundnut carry the biggest risk. Cassava chips, yam chips, tree nuts and dried chillies can also carry it."},
+      {f:"What does aflatoxin do to the liver?", b:"Long term exposure damages liver cells and is linked to liver cancer. It is one of the strongest known natural liver carcinogens."},
+      {f:"How does aflatoxin affect children?", b:"Regular exposure in early childhood is linked to stunted growth and a weaker immune system, even without visible signs of poisoning."},
+      {f:"What is acute aflatoxicosis?", b:"A rare but severe poisoning after eating heavily contaminated food over a short time. It can cause liver failure. Outbreaks have happened in East Africa."},
+      {f:"How does aflatoxin affect farm income?", b:"Contaminated grain is rejected at market or sold at a much lower price, since buyers, mills and exporters increasingly test for it before paying."},
+      {f:"What is Aflasafe?", b:"A biocontrol product used in several African countries, including Nigeria, that spreads friendly native fungal strains to crowd out toxin-producing ones."},
+      {f:"What is the single most effective step after harvest?", b:"Drying the crop quickly to a safe moisture level and keeping it dry in storage, since damp grain is what lets the fungus grow."},
+      {f:"What is hermetic storage?", b:"Sealed, airtight storage, like PICS bags, that starves pests and fungi of oxygen, protecting grain without chemicals."},
+      {f:"Why do international buyers reject high aflatoxin grain?", b:"Most countries and trade blocs set legal limits on aflatoxin in food and feed. Grain above the limit cannot legally be sold or exported."},
+      {f:"What can a field worker check for at harvest?", b:"Visible mould, insect damage, discoloured or shrivelled kernels, and moisture level. Damaged kernels should be sorted out before storage."}
+    ],
+    quiz: [
+      {q:"What causes aflatoxin?", o:["Bacteria","A type of fungus","A virus","Soil minerals"], a:1, e:"Aflatoxin is produced by Aspergillus flavus and Aspergillus parasiticus, two related fungi."},
+      {q:"Which two crops carry the highest aflatoxin risk?", o:["Rice and wheat","Maize and groundnut","Tomato and pepper","Banana and plantain"], a:1, e:"Maize and groundnut are the crops most associated with aflatoxin contamination."},
+      {q:"Can you tell food is contaminated just by looking at it?", o:["Yes, it always looks mouldy","Yes, it smells sour","No, it is usually invisible","Only if it is rotten"], a:2, e:"Aflatoxin usually has no visible sign, smell or taste."},
+      {q:"Aflatoxin is most strongly linked to damage in which organ?", o:["Kidney","Liver","Lungs","Skin"], a:1, e:"It is one of the strongest known natural causes of liver damage and liver cancer."},
+      {q:"What condition in children is linked to regular low-level exposure?", o:["Improved growth","Stunted growth","Better appetite","No effect"], a:1, e:"Regular exposure in early childhood is linked to stunted growth and weaker immunity."},
+      {q:"What mainly drives fungal growth on stored grain?", o:["Cold temperature","Moisture","Sunlight","Salt"], a:1, e:"Moisture is the key condition that lets the fungus grow and produce toxin."},
+      {q:"What is Aflasafe?", o:["A pesticide","A biocontrol product using friendly fungal strains","A type of fertiliser","A grain variety"], a:1, e:"Aflasafe spreads native, non-toxic fungal strains to outcompete toxin-producing ones in the field."},
+      {q:"What is a PICS bag used for?", o:["Transporting produce to market","Airtight, hermetic storage","Measuring moisture","Spraying pesticide"], a:1, e:"PICS bags provide sealed, airtight storage that limits oxygen and slows pest and fungal growth."},
+      {q:"Why do exporters reject high aflatoxin grain?", o:["It costs more to transport","Legal limits are exceeded","It weighs more","It tastes different"], a:1, e:"Most countries and trading blocs enforce legal maximum limits on aflatoxin in traded grain."},
+      {q:"What should be prioritised right after harvest?", o:["Store grain wet to keep it fresh","Dry the crop quickly and store it dry","Mix contaminated grain with clean grain","Ignore mould since it washes off"], a:1, e:"Fast, proper drying followed by dry storage is the most effective prevention step after harvest."}
+    ]
+  },
+  m2: {
+    flashcards: [
+      {f:"What does pesticide misuse mean?", b:"Using the wrong product, wrong amount, wrong timing, or wrong method, often without protective equipment."},
+      {f:"What is a pre-harvest interval?", b:"The minimum waiting time between the last pesticide spray and harvest. Skipping it leaves higher residue on food."},
+      {f:"What real trade case shows the cost of pesticide misuse?", b:"The European Union restricted cowpea imports from Nigeria after finding pesticide residues above allowed limits."},
+      {f:"What happens to pests over time when pesticides are misused?", b:"Pests can develop resistance, meaning the same chemical stops working and stronger or more frequent doses seem needed."},
+      {f:"Who is at risk from pesticide misuse besides consumers?", b:"The farmers and workers applying the chemicals, often without gloves, masks or protective clothing."},
+      {f:"What is an alternative to chemical spraying for stored grain pests?", b:"Hermetic storage, such as PICS bags, which blocks oxygen and controls pests without chemicals."},
+      {f:"What happens to pesticide residue in soil and water over time?", b:"Some pesticides persist for a long time, building up in soil and water and affecting other organisms, including helpful insects."},
+      {f:"What is Integrated Pest Management?", b:"An approach combining several safer methods, like crop rotation and resistant varieties, using chemicals only as a last resort at the right dose."},
+      {f:"What is one simple protective step every applicator should take?", b:"Wear recommended protective clothing, gloves and a mask, and wash thoroughly after spraying."},
+      {f:"What should be checked on a pesticide label before use?", b:"The correct crop it is approved for, the correct dose, and the pre-harvest interval."},
+      {f:"Why does resistance make things worse over time?", b:"As pests survive normal doses, farmers may increase dose or frequency, raising both cost and health risk without solving the underlying problem."}
+    ],
+    quiz: [
+      {q:"What does pesticide misuse usually involve?", o:["Following label instructions exactly","Wrong product, dose, timing or method","Using organic fertiliser instead","Not using any chemicals"], a:1, e:"Misuse means deviating from the approved product, dose, timing or method."},
+      {q:"What is a pre-harvest interval?", o:["Time between planting and germination","Waiting time between last spray and harvest","Time to mix the chemical","Storage duration"], a:1, e:"It is the required wait between the final spray and safely harvesting the crop."},
+      {q:"Why did the EU restrict Nigerian cowpea imports?", o:["Poor packaging","Pesticide residues above legal limits","Low protein content","Wrong crop variety"], a:1, e:"Residue levels above the legal limit triggered the trade restriction."},
+      {q:"What can happen when pests face the same pesticide repeatedly?", o:["They disappear completely","They can develop resistance","They become easier to kill","Nothing changes"], a:1, e:"Repeated exposure can select for resistant pests, reducing the chemical's effectiveness."},
+      {q:"Who faces health risk from pesticide misuse?", o:["Only consumers","Only insects","Farmers, workers and consumers","Only the environment"], a:2, e:"Applicators, farm workers and consumers can all be affected."},
+      {q:"What is a chemical-free way to protect stored grain from pests?", o:["Leaving bags open for air","Hermetic (airtight) storage","Spraying more pesticide","Storing grain wet"], a:1, e:"Sealed, airtight storage starves pests of oxygen without chemical use."},
+      {q:"What does Integrated Pest Management involve?", o:["A single strong chemical used often","Combining several safer methods, with chemicals as a last resort","Ignoring pests entirely","Using unapproved chemicals"], a:1, e:"IPM blends multiple approaches, reserving chemical use for when it's truly needed."},
+      {q:"What should be checked before applying any pesticide?", o:["The colour of the bottle","The label's approved crop, dose and pre-harvest interval","The price only","The brand name only"], a:1, e:"The label defines safe and legal use for a given crop."},
+      {q:"What reduces health risk during spraying?", o:["Spraying barefoot for comfort","Wearing gloves, mask and protective clothing","Spraying at midday for better sun","Mixing extra chemical for safety"], a:1, e:"Protective equipment reduces exposure for the person applying the chemical."},
+      {q:"What long-term environmental effect can pesticide misuse cause?", o:["Improved soil fertility","Persistence in soil and water, harming other organisms","Faster crop growth","No effect at all"], a:1, e:"Some pesticides persist in the environment and can harm non-target organisms, including beneficial insects."}
+    ]
+  },
+  m3: {
+    flashcards: [
+      {f:"What is a Recirculating Aquaculture System (RAS)?", b:"A closed system where water is reused to raise fish, often combined with growing vegetables using the nutrient-rich water."},
+      {f:"Why combine fish and vegetables in one system?", b:"Fish waste supplies nutrients that feed the vegetables, and the plants help clean the water before it returns to the fish."},
+      {f:"What is the main safety risk in these systems?", b:"If the shared water carries antibiotics, chemicals or harmful pathogens, both the fish and the vegetables can be affected."},
+      {f:"Why might antibiotics end up in the water?", b:"They may be used to treat sick fish, and residues can remain in the water and in harvested fish or produce."},
+      {f:"What does traceability mean for a customer here?", b:"Being able to know where fish or vegetables came from and how they were produced, including any treatments used."},
+      {f:"What is a simple safety practice for RAS operators?", b:"Regularly testing water quality and only using antibiotics when truly necessary and properly managed."},
+      {f:"Why should vegetables from this water be handled carefully at harvest?", b:"They may be eaten raw, so any pathogen in the water can pass directly to the person eating them."},
+      {f:"What role can microbiome-based approaches play here?", b:"They can help maintain fish health naturally, reducing the need for antibiotics and other chemical treatments."},
+      {f:"What is one food security benefit of this method?", b:"It can produce protein-rich fish and vegetables efficiently from a small area of land and limited water."},
+      {f:"What should be documented and shared with buyers?", b:"Basic information on how the fish and vegetables were raised, including water source and any treatments used."}
+    ],
+    quiz: [
+      {q:"What is a Recirculating Aquaculture System?", o:["A one-time use pond","A closed system where water is reused for fish farming","A type of fishing net","A market for fish"], a:1, e:"RAS systems filter and reuse water rather than discharging it after a single use."},
+      {q:"Why are fish and vegetables sometimes grown together?", o:["It looks attractive","Fish waste feeds the plants, which help clean the water","It saves on labour only","It is required by law"], a:1, e:"The two components support each other through nutrient cycling and water filtering."},
+      {q:"What is the main food safety concern in these systems?", o:["Fish grow too fast","Shared water can carry pathogens or residues to both fish and plants","Vegetables grow too slowly","Water is too clean"], a:1, e:"Since water is shared, contamination can spread to both food products."},
+      {q:"Why might antibiotics appear in RAS produce?", o:["They are added to plant fertiliser","They may be used to treat sick fish and leave residues","They come from the air","They are naturally present in water"], a:1, e:"Antibiotic use to treat fish disease can leave residues in the shared water system."},
+      {q:"What does traceability give a customer?", o:["A lower price","Information on how their food was produced","A guaranteed refund","Faster delivery"], a:1, e:"Traceability lets a buyer understand the origin and treatment history of their food."},
+      {q:"What should operators do regularly to manage safety?", o:["Ignore water quality","Test water quality and limit antibiotic use","Add more chemicals","Stop feeding the fish"], a:1, e:"Regular water testing and careful antibiotic use reduce contamination risk."},
+      {q:"Why is hygiene especially important for vegetables from these systems?", o:["They are usually cooked first","They may be eaten raw, so pathogens can pass directly to people","They are exported only","They are not sold to consumers"], a:1, e:"Raw consumption removes the safety margin that cooking would otherwise provide."},
+      {q:"What can reduce the need for antibiotics in fish farming?", o:["More frequent chemical dosing","Microbiome-based approaches to fish health","Ignoring sick fish","Overcrowding fish tanks"], a:1, e:"Supporting fish health biologically can lower reliance on antibiotic treatment."},
+      {q:"What is one food security benefit of this approach?", o:["It uses large amounts of land","It produces protein-rich food efficiently from limited space and water","It requires no water","It cannot be done at small scale"], a:1, e:"Combined systems can be efficient users of land and water compared to separate operations."},
+      {q:"What should be shared with buyers about the produce?", o:["Nothing, it is not necessary","Basic production information, including water source and treatments used","Only the price","Only the harvest date"], a:1, e:"Sharing basic production details supports trust and food safety accountability."}
+    ]
+  },
+  m4: {
+    flashcards: [
+      {f:"What are two common pathogens found on contaminated vegetables?", b:"Escherichia coli (E. coli) and Salmonella, both of which can cause diarrhoea and, in severe cases, more serious illness."},
+      {f:"What is the biggest source of contamination on farms?", b:"Contaminated irrigation water, often from rivers or sources shared with animals or affected by poor sanitation."},
+      {f:"How can unwashed hands contaminate produce?", b:"Hands that touch soil, animals or dirty surfaces can transfer bacteria directly onto vegetables during harvesting or packing."},
+      {f:"Why should produce be kept off bare ground?", b:"Ground contact increases the chance of picking up bacteria from soil, animal waste or standing water."},
+      {f:"What is a simple farm hygiene practice for water?", b:"Use the cleanest available water source for washing produce, and avoid water that animals or waste may have contaminated."},
+      {f:"What role do dirty crates and containers play?", b:"They can carry bacteria from one batch of produce to the next if never cleaned."},
+      {f:"Why does the cold chain matter for leafy greens and tomatoes?", b:"Keeping produce cool slows bacterial growth between harvest and the point of sale."},
+      {f:"What is a basic self-check a smallholder can do?", b:"Check the water source, check hands and tools are clean, and check that produce does not touch bare soil or dirty surfaces."},
+      {f:"What symptoms can E. coli or Salmonella contamination cause?", b:"Diarrhoea, stomach cramps and fever, and in vulnerable people, more severe illness."},
+      {f:"What is the idea behind farm to fork surveillance?", b:"Checking for contamination at multiple points, on the farm, at the water source, and at the point of retail, rather than only at the end."}
+    ],
+    quiz: [
+      {q:"Which two pathogens are highlighted as common contaminants on vegetables?", o:["Malaria and cholera","E. coli and Salmonella","Measles and flu","Tetanus and rabies"], a:1, e:"E. coli and Salmonella are the bacteria most commonly linked to fresh produce contamination."},
+      {q:"What is a major source of farm contamination?", o:["Sunlight","Contaminated irrigation water","Fresh rainwater","Clean fertiliser"], a:1, e:"Irrigation water drawn from contaminated sources is a leading contamination route."},
+      {q:"How can hands contaminate produce?", o:["By carrying bacteria from soil or dirty surfaces onto the crop","By making the crop grow faster","By improving crop colour","Hands cannot contaminate produce"], a:0, e:"Hands act as a direct transfer point for bacteria onto harvested produce."},
+      {q:"Why keep produce off bare ground?", o:["It looks neater","It reduces contact with soil bacteria and waste","It ripens faster","It has no safety benefit"], a:1, e:"Ground contact increases exposure to soil-borne bacteria and animal waste."},
+      {q:"What water should be used to wash produce?", o:["Any available water, condition does not matter","The cleanest available water source","Only salt water","No washing is needed"], a:1, e:"Using the cleanest available water reduces the risk of transferring contamination."},
+      {q:"What can dirty crates and containers do?", o:["Improve shelf life","Carry bacteria between batches of produce","Add nutrients","Nothing, they are harmless"], a:1, e:"Uncleaned containers can transfer contamination from one batch to the next."},
+      {q:"Why does keeping produce cool matter?", o:["It slows bacterial growth","It changes the taste","It has no effect on safety","It speeds up bacterial growth"], a:0, e:"Lower temperatures slow the rate at which bacteria multiply."},
+      {q:"What is a basic self-check for a smallholder?", o:["Ignore water source","Check water, hands, tools, and ground contact","Only check the weather","Only check crop colour"], a:1, e:"A simple multi-point check covers the most common contamination routes."},
+      {q:"What symptoms can contaminated produce cause in people?", o:["Improved digestion","Diarrhoea, cramps and fever","Better appetite","No symptoms ever"], a:1, e:"These are the typical symptoms of E. coli or Salmonella illness."},
+      {q:"What is farm to fork surveillance?", o:["Checking only at the market","Checking for contamination at multiple points along the chain","A marketing slogan only","A one time inspection at export"], a:1, e:"Checking at several stages, not just the end point, catches more risk earlier."}
+    ]
+  }
+};
+
+const MODULE_TITLES = {m1:"Aflatoxin", m2:"Pesticides", m3:"Fish & Vegetable Farming", m4:"Clean Produce"};
+
+/* ---------------- STATE / STORAGE ---------------- */
+const STORAGE_KEY = "jirigi_progress_v1";
+const THEME_KEY = "jirigi_theme_v1";
+
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {m1:{quizDone:false,best:0},m2:{quizDone:false,best:0},m3:{quizDone:false,best:0},m4:{quizDone:false,best:0}};
+}
+let progress = loadProgress();
+function saveProgress(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }catch(e){}
+  refreshHomeStamps();
+}
+function refreshHomeStamps(){
+  Object.keys(MODULE_TITLES).forEach(m=>{
+    const el = document.getElementById('stampHome-'+m);
+    if(el) el.style.display = progress[m] && progress[m].quizDone ? 'block' : 'none';
+  });
+}
+
+/* ---------------- THEME ---------------- */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeIcon').textContent = t === 'dark' ? '☀' : '🌙';
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+}
+(function initTheme(){
+  let t = 'light';
+  try{
+    const saved = localStorage.getItem(THEME_KEY);
+    if(saved) t = saved;
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+  }catch(e){}
+  applyTheme(t);
+})();
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+/* ---------------- NAV / VIEWS ---------------- */
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.querySelectorAll('.navlink').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-view') === id);
+  });
+  document.getElementById('mobileNav').classList.remove('open');
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(['m1','m2','m3','m4'].includes(id)) animateChartsIn(id);
+}
+function goHome(){ showView('home'); }
+
+document.querySelectorAll('.navlink').forEach(btn=>{
+  btn.addEventListener('click', ()=> showView(btn.getAttribute('data-view')));
+});
+document.getElementById('hamburgerBtn').addEventListener('click', ()=>{
+  document.getElementById('mobileNav').classList.toggle('open');
+});
+
+function openSettingsTab(name){
+  document.querySelectorAll('.settings-tab').forEach(t=>t.classList.toggle('active', t.getAttribute('data-tab')===name));
+  document.querySelectorAll('.settings-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('settings-'+name).classList.add('active');
+}
+
+function resetProgress(){
+  progress = {m1:{quizDone:false,best:0},m2:{quizDone:false,best:0},m3:{quizDone:false,best:0},m4:{quizDone:false,best:0}};
+  saveProgress();
+  alert('Progress reset. Quiz scores and completion badges have been cleared on this device.');
+}
+
+/* ---------------- CHART ANIMATION ---------------- */
+function animateChartsIn(moduleId){
+  document.querySelectorAll('#view-'+moduleId+' .bar-rect').forEach(r=>{
+    const h = parseFloat(r.getAttribute('data-h'));
+    const y = parseFloat(r.getAttribute('data-y'));
+    requestAnimationFrame(()=>{
+      r.setAttribute('height', h);
+      r.setAttribute('y', y);
+    });
+  });
+}
+
+/* ---------------- FLASHCARDS ---------------- */
+function buildFlashcards(moduleId){
+  const container = document.querySelector('.flash-section[data-module="'+moduleId+'"]');
+  const cards = DATA[moduleId].flashcards;
+  let idx = 0;
+  container.innerHTML = `
+    <div class="section-head"><h2 style="font-size:22px;"><span class="emoji">🗂</span> Flashcards</h2><span class="mono" style="font-size:12px;color:var(--ink-faint);">tap a card to flip it</span></div>
+    <div class="flash-wrap">
+      <div class="flash-card" id="flashCard-${moduleId}">
+        <div class="flash-inner">
+          <div class="flash-face flash-front"><span class="lbl">Question</span><p id="flashFront-${moduleId}"></p></div>
+          <div class="flash-face flash-back"><span class="lbl">Answer</span><p id="flashBack-${moduleId}"></p></div>
+        </div>
+      </div>
+      <div class="flash-controls">
+        <button class="btn ghost" id="flashPrev-${moduleId}">← Prev</button>
+        <div class="flash-dots" id="flashDots-${moduleId}"></div>
+        <button class="btn ghost" id="flashNext-${moduleId}">Next →</button>
+      </div>
+      <p class="flash-hint" id="flashCount-${moduleId}"></p>
+    </div>
+  `;
+  const cardEl = document.getElementById('flashCard-'+moduleId);
+  const dotsEl = document.getElementById('flashDots-'+moduleId);
+  cards.forEach((c,i)=>{
+    const d = document.createElement('span');
+    d.className='dot';
+    d.id = 'dot-'+moduleId+'-'+i;
+    dotsEl.appendChild(d);
+  });
+  function render(){
+    document.getElementById('flashFront-'+moduleId).textContent = cards[idx].f;
+    document.getElementById('flashBack-'+moduleId).textContent = cards[idx].b;
+    document.getElementById('flashCount-'+moduleId).textContent = (idx+1)+' of '+cards.length;
+    cardEl.classList.remove('flipped');
+    document.querySelectorAll('#flashDots-'+moduleId+' .dot').forEach((d,i)=>d.classList.toggle('active', i===idx));
+  }
+  cardEl.addEventListener('click', ()=>{
+    cardEl.classList.toggle('flipped');
+    document.getElementById('dot-'+moduleId+'-'+idx).classList.add('seen');
+  });
+  document.getElementById('flashPrev-'+moduleId).addEventListener('click', (ev)=>{ ev.stopPropagation(); idx = (idx-1+cards.length)%cards.length; render(); });
+  document.getElementById('flashNext-'+moduleId).addEventListener('click', (ev)=>{ ev.stopPropagation(); idx = (idx+1)%cards.length; render(); });
+  render();
+}
+
+/* ---------------- QUIZ ---------------- */
+function buildQuiz(moduleId){
+  const container = document.querySelector('.quiz-section[data-module="'+moduleId+'"]');
+  const questions = DATA[moduleId].quiz;
+  let idx = 0, score = 0, answered = false;
+  container.innerHTML = `
+    <div class="section-head" style="margin-top:16px;"><h2 style="font-size:22px;"><span class="emoji">📝</span> Module quiz</h2><span class="mono" style="font-size:12px;color:var(--ink-faint);">${questions.length} questions</span></div>
+    <div class="quiz-card" id="quizCard-${moduleId}"></div>
+  `;
+  const card = document.getElementById('quizCard-'+moduleId);
+
+  function renderQuestion(){
+    answered = false;
+    const q = questions[idx];
+    card.innerHTML = `
+      <div class="quiz-progress"><div class="quiz-progress-fill" style="width:${(idx/questions.length)*100}%"></div></div>
+      <div class="q-title">Question ${idx+1} of ${questions.length}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="q-options">
+        ${q.o.map((opt,i)=>`<button class="q-option" data-i="${i}">${opt}</button>`).join('')}
+      </div>
+      <div class="q-explain" id="explain-${moduleId}"></div>
+      <div class="q-nav"><span></span><button class="btn" id="qNextBtn-${moduleId}" style="display:none;">Next →</button></div>
+    `;
+    card.querySelectorAll('.q-option').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(answered) return;
+        answered = true;
+        const chosen = parseInt(btn.getAttribute('data-i'));
+        card.querySelectorAll('.q-option').forEach((b,i)=>{
+          b.classList.add('disabled');
+          if(i === q.a) b.classList.add('correct');
+          else if(i === chosen) b.classList.add('wrong');
+        });
+        if(chosen === q.a) score++;
+        const ex = document.getElementById('explain-'+moduleId);
+        ex.textContent = q.e;
+        ex.classList.add('show');
+        document.getElementById('qNextBtn-'+moduleId).style.display = 'inline-flex';
+      });
+    });
+    document.getElementById('qNextBtn-'+moduleId).addEventListener('click', ()=>{
+      idx++;
+      if(idx < questions.length) renderQuestion();
+      else renderResult();
+    });
+  }
+
+  function renderResult(){
+    const pct = Math.round((score/questions.length)*100);
+    const pass = pct >= 70;
+    progress[moduleId].quizDone = progress[moduleId].quizDone || pass;
+    progress[moduleId].best = Math.max(progress[moduleId].best || 0, pct);
+    saveProgress();
+    card.innerHTML = `
+      <div class="quiz-result">
+        <svg class="stamp-badge" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" class="svg-fill-soft svg-stroke" stroke-width="3"/>
+          <circle cx="60" cy="60" r="42" class="svg-stroke" stroke-width="1.5" stroke-dasharray="3 4"/>
+          <text x="60" y="55" text-anchor="middle" class="mono svg-fill-ink" font-size="13" font-weight="700">${pass ? 'PASSED' : pct+'%'}</text>
+          <text x="60" y="72" text-anchor="middle" class="mono svg-fill-ink" font-size="9">${MODULE_TITLES[moduleId]}</text>
+        </svg>
+        <h3>${pass ? 'Well done, module complete' : 'Good effort, try again'}</h3>
+        <div class="score">Score: ${score} of ${questions.length} (${pct}%)</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn ghost" id="retryBtn-${moduleId}">Retake quiz</button>
+          <button class="btn" onclick="goHome()">Back to modules</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('retryBtn-'+moduleId).addEventListener('click', ()=>{
+      idx = 0; score = 0; renderQuestion();
+    });
+  }
+
+  renderQuestion();
+}
+
+/* ---------------- INIT ---------------- */
+['m1','m2','m3','m4'].forEach(m=>{
+  buildFlashcards(m);
+  buildQuiz(m);
+});
+refreshHomeStamps();
+</script>
+</body>
+</html>
